@@ -1,15 +1,19 @@
 import 'package:gdocs_flutter/constants.dart';
+import 'package:gdocs_flutter/models/error_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:gdocs_flutter/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
+
 final authRepositoryProvider = Provider(
   (ref) => AuthRepository(
     googleSignIn: GoogleSignIn(),
     client: http.Client(),
   ),
 );
+
+final userProvider = StateProvider<UserModel?>((ref) => null);
 
 class AuthRepository {
   final GoogleSignIn _googleSignIn;
@@ -20,7 +24,9 @@ class AuthRepository {
       : _googleSignIn = googleSignIn,
         _client = client;
 
-  void signInWithGoogle() async {
+  Future<ErrorModel> signInWithGoogle() async {
+    ErrorModel error =
+        ErrorModel(error: "Some unexpected error occured.", data: null);
     try {
       final user = await _googleSignIn.signIn();
       if (user != null) {
@@ -43,10 +49,13 @@ class AuthRepository {
             final newUser = userAcc.copyWith(
               uid: jsonDecode(res.body)["user"]["_id"],
             );
+            error = ErrorModel(error: null, data: newUser);
+            break;
         }
       }
     } catch (e) {
-      print(e);
+      error = ErrorModel(error: e.toString(), data: null);
     }
+    return error;
   }
 }
