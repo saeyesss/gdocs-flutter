@@ -1,5 +1,6 @@
 import 'package:gdocs_flutter/constants.dart';
 import 'package:gdocs_flutter/models/error_model.dart';
+import 'package:gdocs_flutter/repository/local_storage_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:gdocs_flutter/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,6 +11,7 @@ final authRepositoryProvider = Provider(
   (ref) => AuthRepository(
     googleSignIn: GoogleSignIn(),
     client: http.Client(),
+    localStorageRepository: LocalStorageRepository(),
   ),
 );
 
@@ -18,11 +20,14 @@ final userProvider = StateProvider<UserModel?>((ref) => null);
 class AuthRepository {
   final GoogleSignIn _googleSignIn;
   final http.Client _client;
-
+  final LocalStorageRepository _localStorageRepository;
   AuthRepository(
-      {required GoogleSignIn googleSignIn, required http.Client client})
+      {required GoogleSignIn googleSignIn,
+      required http.Client client,
+      required LocalStorageRepository localStorageRepository})
       : _googleSignIn = googleSignIn,
-        _client = client;
+        _client = client,
+        _localStorageRepository = localStorageRepository;
 
   Future<ErrorModel> signInWithGoogle() async {
     ErrorModel error =
@@ -52,6 +57,42 @@ class AuthRepository {
             );
 
             error = ErrorModel(error: null, data: newUser);
+            _localStorageRepository.setToken(newUser.token);
+            break;
+        }
+      }
+    } catch (e) {
+      error = ErrorModel(error: e.toString(), data: null);
+    }
+    return error;
+  }
+
+  Future<ErrorModel> getUserData() async {
+    ErrorModel error =
+        ErrorModel(error: "Some unexpected error occured.", data: null);
+    try {
+      String? token = await _localStorageRepository.getToken();
+
+      if (token != null) {
+        var res = await _client.get(
+          Uri.parse("$host/"),
+          headers: {
+            "Content-Type": "application/json; charSet=UTF-8",
+            'x-auth-token': token,
+          },
+        );
+
+        switch (res.statusCode) {
+          case 200:
+            final newUser = UserModel.fromJson(
+              jsonEncode(
+                jsonDecode(res.body)["user"],
+              ),
+            ).copyWith(
+              token: token,
+            );
+            error = ErrorModel(error: null, data: newUser);
+            _localStorageRepository.setToken(newUser.token);
             break;
         }
       }
