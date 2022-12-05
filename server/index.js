@@ -2,13 +2,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const authRouter = require('./routes/auth');
 const cors = require('cors');
+const documentRouter = require('./routes/document');
 const PORT = process.env.PORT | 3001;
 
 const app = express();
-
+app.use(cors());
 app.use(express.json);
 app.use(authRouter);
-app.use(cors());
+app.use(documentRouter);
 const DB =
   'mongodb+srv://shreyas:testpassword12@cluster0.39vs8gt.mongodb.net/?retryWrites=true&w=majority';
 
