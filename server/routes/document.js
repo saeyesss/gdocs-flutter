@@ -1,6 +1,6 @@
 const express = require('express');
-const Document = require('../modles/document');
-const auth = require('../m');
+const Document = require('../models/document');
+const auth = require('../middlewares/auth');
 const documentRouter = express.Router();
 
 documentRouter.post('/doc/create', auth, async (req, res) => {
